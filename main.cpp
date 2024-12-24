@@ -7,13 +7,20 @@ Vector2 calculatePosition(Vector2 relativePosition) {
                  relativePosition.y * GetScreenHeight()};
 }
 
-std::vector<double> normalizeData(const std::vector<int> &prices) {
+void normalizeData(std::vector<Coinbase::Candle> &prices) {
 
-  auto element = std::minmax_element(prices.begin(), prices.end());
+  std::vector<double> tmp;
+  for (const auto &i : prices)
+    tmp.push_back(i.closingPrice);
 
-  std::cout << *element.first << ", " << *element.second << std::endl;
+  auto element = std::minmax_element(tmp.begin(), tmp.end());
 
-  return {};
+  auto min = *element.first;
+  auto max = *element.second;
+
+  for (size_t i = 0; i < prices.size(); i++) {
+    prices[i].closingPrice = (prices.at(i).closingPrice - min) / (max - min);
+  }
 }
 
 struct DataPoint {
@@ -109,6 +116,7 @@ int main() {
       start = start + granularity;
       end = end + granularity;
       // std::this_thread::sleep_for(std::chrono::seconds(granularity));
+      normalizeData(candles);
     }
 
     // Draw
@@ -117,22 +125,19 @@ int main() {
 
     ClearBackground(BLACK);
 
-    DataPoint p;
-    p.normalizedPosition = {0.5, 0.5};
-    p.radius = 5;
-    // DrawText("Congrats! You created your first window!", 190, 200, 20,
-    // BLACK);
-    DrawCircleV(calculatePosition(p.normalizedPosition), p.radius, RED);
-    ;
+    float x_scale = 20.0f;
+    float y_scale = (screenHeight / 2.0f) * 3.0f;
+    for (size_t i = 0; i < candles.size(); i++) {
+      float x = static_cast<float>(i * x_scale);
+      float y = static_cast<float>(screenHeight -
+                                   (candles.at(i).closingPrice * y_scale));
+      DrawCircleV({x, y}, 5, RED);
+      DrawText("test", x, y, 10, RED);
+    }
 
     EndDrawing();
     //----------------------------------------------------------------------------------
   }
-
-  std::vector test = {1, 2, 4, 5, 6, 7, 8, 9, 22};
-
-  normalizeData(test);
-
   // De-Initialization
   //--------------------------------------------------------------------------------------
   CloseWindow(); // Close window and OpenGL context
