@@ -2,11 +2,6 @@
 #include "raylib.h"
 #include <algorithm>
 
-Vector2 calculatePosition(Vector2 relativePosition) {
-  return Vector2{relativePosition.x * GetScreenWidth(),
-                 relativePosition.y * GetScreenHeight()};
-}
-
 void normalizeData(std::vector<Result> &prices) {
 
   std::vector<double> tmp;
@@ -26,17 +21,20 @@ void normalizeData(std::vector<Result> &prices) {
 
 void moveCamera(Camera2D &camera){
 
-  if(IsKeyDown(KEY_RIGHT)){
-    camera.target.x += 200.0f * GetFrameTime();
-  }
-  if(IsKeyDown(KEY_LEFT)){
-    camera.target.x -= 200.0f * GetFrameTime();
-  }
-  if(IsKeyDown(KEY_UP)){
-    camera.target.y += 200.0f * GetFrameTime();
-  }
-  if(IsKeyDown(KEY_DOWN)){
-    camera.target.y -= 200.0f * GetFrameTime();
+  static Vector2 lastMousePos = {0.0f, 0.0f};
+  static bool isDragging = false;
+
+  if(IsMouseButtonDown(MOUSE_BUTTON_LEFT)){
+    if(!isDragging){
+      isDragging = true;
+      lastMousePos = GetMousePosition();
+    }
+
+    Vector2 mouseDelta = {GetMousePosition().x - lastMousePos.x , GetMousePosition().y - lastMousePos.y};
+    camera.target = {camera.target.x - mouseDelta.x, camera.target.y - mouseDelta.y};
+    lastMousePos = GetMousePosition();
+  }else{
+    isDragging = false;
   }
 
   if(GetMouseWheelMove() != 0){
@@ -137,9 +135,10 @@ int main() {
           res.normalized_timestamp = 60;
 
           result.push_back(res);
+#if 0
           operations->writeAnalysisToFile("analysis.txt",
                                           operations->resultToString(res));
-
+#endif
           lastFetchTime = latestCandle.timestamp;
         }
       }
@@ -162,24 +161,38 @@ int main() {
         float y_scale = (screenHeight / 2.0f);
         Color color = RED;
         int fontsize = 12;
+        static Vector2 prevPosition = {0.0f, 0.0f};
+
         BeginMode2D(camera);
+        
         for (size_t i = 0; i < result.size(); i++) {
+        
           float x = static_cast<float>(result.at(i).normalized_timestamp * (i + 2));
           float y = static_cast<float>(screenHeight - (result.at(i).normalized_price * y_scale));
+          
           DrawCircleV({x, y}, 3, RED);
-          DrawLine(-1000, 100, 1000, 100, WHITE);
-          if(result.at(i).signal == "HOLD"){
-            color = RED;
-          }else if(result.at(i).signal == "BUY"){
-            color = GREEN;
-          }else{
-            color = BLUE;
+          
+          if(prevPosition.x != x && prevPosition.y != y){
+            if(i != 0){
+              DrawLineBezier( prevPosition, (Vector2){x, y}, 0.7f, WHITE); 
+            }
+            prevPosition = (Vector2){x, y};
           }
+
+          if(result.at(i).signal == "HOLD") color = RED;
+          else if(result.at(i).signal == "BUY") color = GREEN;
+          else color = BLUE;
+          
+        
           DrawText(result.at(i).signal.c_str(), x+3, y, fontsize, color);
           DrawText(std::to_string(result.at(i).price).c_str(), x+3, y+16, fontsize, color);
           DrawText(std::to_string(result.at(i).normalized_price).c_str(), x+3, y+32, fontsize, color);
           DrawText(std::to_string(i).c_str(), x+3, y+47, fontsize, color);
+
+          // camera.target = (Vector2) {x, y};
+        
         }
+
         EndMode2D();
     }
 
