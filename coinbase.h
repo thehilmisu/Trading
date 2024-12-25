@@ -69,11 +69,11 @@ public:
       for (const auto &candle : jsonData) {
         Candle c;
         c.timestamp = static_cast<time_t>(candle[0].asInt64()); // Convert timestamp to time_t
-        c.closingPrice = candle[4].asDouble(); // Extract "close" price
+        c.closingPrice = candle[4].asDouble(); 
         candles.push_back(c);
       }
     } else {
-      std::cerr << "Error: Expected JSON array, but received something else." << std::endl;
+      std::cerr << "Error: Expected JSON array, but received something else : " << jsonData << std::endl;
     }
   } else {
     std::cerr << "JSON Parse Error: " << errs << std::endl;

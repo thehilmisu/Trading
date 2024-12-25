@@ -22,6 +22,8 @@ struct Result {
   time_t timestamp;
   MACDResult macd;
   double price;
+  double normalized_price;
+  double normalized_timestamp;
   double kama;
   double rsi;
   std::string signal;
