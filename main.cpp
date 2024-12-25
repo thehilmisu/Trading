@@ -1,6 +1,7 @@
 #include "operations.h"
 #include "raylib.h"
 #include <algorithm>
+#include <cstdio>
 
 void moveCamera(Camera2D &camera) {
 
@@ -62,8 +63,14 @@ int main() {
 
   static int buy_count = 0;
   static int sell_count = 0;
-  static int success_count = 0;
-
+  static int buy_success_count = 0;
+  static int buy_fail_count = 0;
+  static int sell_success_count = 0;
+  static int sell_fail_count = 0;
+  static float last_buy_price = 0.0f;
+  static float last_sell_price = 0.0f;
+  bool buy_flag = false;
+  bool sell_flag = false;
   //--------------------------------------------------------------------------------------
 
   // Main loop
@@ -109,10 +116,14 @@ int main() {
           if (macd.macdLine > macd.signalLine && rsi < 50 &&
               latestCandle.closingPrice > kama) {
             signal = "BUY";
+            last_buy_price = latestCandle.closingPrice;
+            buy_flag = true;
             buy_count++;
           } else if (macd.macdLine < macd.signalLine && rsi > 50 &&
                      latestCandle.closingPrice < kama) {
             signal = "SELL";
+            last_sell_price = latestCandle.closingPrice;
+            sell_flag = true;
             sell_count++;
           } else {
             signal = "HOLD";
@@ -146,10 +157,11 @@ int main() {
     //----------------------------------------------------------------------------------
     BeginDrawing();
 
-    ClearBackground(BLACK);
+    Color background{112, 123, 124, 255};
+    ClearBackground(background);
 
     if (result.size() > 0) {
-      float x_scale = (screenWidth / result.size());
+      float x_scale = (screenWidth / static_cast<float>(result.size()));
       float y_scale = (screenHeight / 2.0f);
       Color color = RED;
       int fontsize = 12;
@@ -172,34 +184,71 @@ int main() {
         }
 
         if (result.at(i).signal == "HOLD")
-          color = RED;
+          color = {146, 43, 33, 255};
         else if (result.at(i).signal == "BUY")
           color = GREEN;
         else
           color = BLUE;
 
+        if (buy_flag) {
+          if (sell_flag) {
+            buy_flag = false;
+            if (last_sell_price - last_buy_price > 0)
+              buy_success_count++;
+            else
+              buy_fail_count++;
+          }
+        }
+
+        if (sell_flag) {
+          if (buy_flag) {
+            sell_flag = false;
+            if (last_sell_price - last_buy_price > 0)
+              sell_success_count++;
+            else
+              sell_fail_count++;
+          }
+        }
+
         DrawCircleV({x, y}, 3, RED);
         DrawText(result.at(i).signal.c_str(), x + 3, y, fontsize, color);
         DrawText(std::to_string(result.at(i).price).c_str(), x + 3, y + 16,
                  fontsize, color);
-        DrawText(std::to_string(result.at(i).normalized_price).c_str(), x + 3,
-                 y + 32, fontsize, color);
+        // DrawText(std::to_string(result.at(i).normalized_price).c_str(), x +
+        // 3, y + 32, fontsize, color);
         DrawText(std::to_string(i).c_str(), x + 3, y + 47, fontsize, color);
       }
 
       EndMode2D();
-
+      Color rectangleColor{33, 47, 61, 255};
       DrawRectangle(0, screenHeight - 250, screenWidth, screenHeight - 250,
-                    GRAY);
+                    rectangleColor);
 
       char buffer[100];
 
       sprintf(buffer, "Total buy decision : %d", buy_count);
       DrawText(buffer, 50, screenHeight - 200, fontsize + 5, WHITE);
+
       sprintf(buffer, "Total sell decision : %d", sell_count);
-      DrawText(buffer, 50, screenHeight - 180, fontsize + 5, WHITE);
-      sprintf(buffer, "Total successfull decision : %d", success_count);
-      DrawText(buffer, 50, screenHeight - 160, fontsize + 5, WHITE);
+      DrawText(buffer, 50, screenHeight - 170, fontsize + 5, WHITE);
+
+      sprintf(buffer, "Total successfull buy decision : %d", buy_success_count);
+      DrawText(buffer, 50, screenHeight - 140, fontsize + 5, WHITE);
+
+      sprintf(buffer, "Total failed buy decision : %d", buy_fail_count);
+      DrawText(buffer, 50, screenHeight - 110, fontsize + 5, WHITE);
+
+      sprintf(buffer, "Total successfull sell decision : %d",
+              sell_success_count);
+      DrawText(buffer, 50, screenHeight - 80, fontsize + 5, WHITE);
+
+      sprintf(buffer, "Total failed sell decision : %d", sell_fail_count);
+      DrawText(buffer, 50, screenHeight - 50, fontsize + 5, WHITE);
+
+      sprintf(buffer, "Last signal : %s - %s", result.back().signal.c_str(),
+              operations->convertToTimestamp(result.back().timestamp).c_str());
+      DrawText(buffer, screenWidth - 300, screenHeight - 200, fontsize + 5,
+               color);
     }
 
     EndDrawing();
