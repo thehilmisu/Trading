@@ -3,6 +3,13 @@
 #include <algorithm>
 #include <cstdio>
 
+void handleInput() { std::cout << "Inputs" << std::endl; }
+void handleKeyboard() {
+
+  if (IsKeyReleased(KEY_W)) {
+    std::cout << "w pressed" << std::endl;
+  }
+}
 void moveCamera(Camera2D &camera) {
 
   static Vector2 lastMousePos = {0.0f, 0.0f};
@@ -55,7 +62,7 @@ int main() {
   SetTargetFPS(60);
   SetWindowState(FLAG_WINDOW_RESIZABLE);
 
-  Camera2D camera = {0};
+  Camera2D camera = {0, 0};
   camera.target = (Vector2){0.0f, 0.0f};
   camera.offset = (Vector2){screenWidth / 2.0f, screenHeight / 2.0f};
   camera.rotation = 0.0f;
@@ -71,6 +78,7 @@ int main() {
   static float last_sell_price = 0.0f;
   bool buy_flag = false;
   bool sell_flag = false;
+  bool first_flag = true;
   //--------------------------------------------------------------------------------------
 
   // Main loop
@@ -157,8 +165,7 @@ int main() {
     //----------------------------------------------------------------------------------
     BeginDrawing();
 
-    Color background{112, 123, 124, 255};
-    ClearBackground(background);
+    ClearBackground(BLACK);
 
     if (result.size() > 0) {
       float x_scale = (screenWidth / static_cast<float>(result.size()));
@@ -184,15 +191,16 @@ int main() {
         }
 
         if (result.at(i).signal == "HOLD")
-          color = {146, 43, 33, 255};
+          color = RED; //{27, 38, 49, 255};
         else if (result.at(i).signal == "BUY")
-          color = GREEN;
+          color = DARKGREEN;
         else
-          color = BLUE;
+          color = DARKBLUE; //{244, 208, 63, 255};
 
         if (buy_flag) {
           if (sell_flag) {
             buy_flag = false;
+            sell_flag = false;
             if (last_sell_price - last_buy_price > 0)
               buy_success_count++;
             else
@@ -203,6 +211,7 @@ int main() {
         if (sell_flag) {
           if (buy_flag) {
             sell_flag = false;
+            buy_flag = false;
             if (last_sell_price - last_buy_price > 0)
               sell_success_count++;
             else
@@ -214,40 +223,49 @@ int main() {
         DrawText(result.at(i).signal.c_str(), x + 3, y, fontsize, color);
         DrawText(std::to_string(result.at(i).price).c_str(), x + 3, y + 16,
                  fontsize, color);
+        if (first_flag) {
+          first_flag = false;
+          camera.target = {x, y};
+        }
         // DrawText(std::to_string(result.at(i).normalized_price).c_str(), x +
         // 3, y + 32, fontsize, color);
-        DrawText(std::to_string(i).c_str(), x + 3, y + 47, fontsize, color);
+        // DrawText(std::to_string(i).c_str(), x + 3, y + 47, fontsize, color);
       }
 
       EndMode2D();
+      DrawLineEx(
+          (Vector2){0.0f, screenHeight - 250.0f},
+          (Vector2){static_cast<float>(screenWidth), screenHeight - 250.0f},
+          4.0f, GRAY);
       Color rectangleColor{33, 47, 61, 255};
       DrawRectangle(0, screenHeight - 250, screenWidth, screenHeight - 250,
                     rectangleColor);
 
       char buffer[100];
+      Color textColor = GRAY;
 
       sprintf(buffer, "Total buy decision : %d", buy_count);
-      DrawText(buffer, 50, screenHeight - 200, fontsize + 5, WHITE);
+      DrawText(buffer, 50, screenHeight - 200, fontsize + 7, textColor);
 
       sprintf(buffer, "Total sell decision : %d", sell_count);
-      DrawText(buffer, 50, screenHeight - 170, fontsize + 5, WHITE);
+      DrawText(buffer, 50, screenHeight - 170, fontsize + 7, textColor);
 
       sprintf(buffer, "Total successfull buy decision : %d", buy_success_count);
-      DrawText(buffer, 50, screenHeight - 140, fontsize + 5, WHITE);
+      DrawText(buffer, 50, screenHeight - 140, fontsize + 7, textColor);
 
       sprintf(buffer, "Total failed buy decision : %d", buy_fail_count);
-      DrawText(buffer, 50, screenHeight - 110, fontsize + 5, WHITE);
+      DrawText(buffer, 50, screenHeight - 110, fontsize + 7, textColor);
 
       sprintf(buffer, "Total successfull sell decision : %d",
               sell_success_count);
-      DrawText(buffer, 50, screenHeight - 80, fontsize + 5, WHITE);
+      DrawText(buffer, 50, screenHeight - 80, fontsize + 7, textColor);
 
       sprintf(buffer, "Total failed sell decision : %d", sell_fail_count);
-      DrawText(buffer, 50, screenHeight - 50, fontsize + 5, WHITE);
+      DrawText(buffer, 50, screenHeight - 50, fontsize + 7, textColor);
 
       sprintf(buffer, "Last signal : %s - %s", result.back().signal.c_str(),
               operations->convertToTimestamp(result.back().timestamp).c_str());
-      DrawText(buffer, screenWidth - 300, screenHeight - 200, fontsize + 5,
+      DrawText(buffer, screenWidth - 400, screenHeight - 200, fontsize + 7,
                color);
     }
 
